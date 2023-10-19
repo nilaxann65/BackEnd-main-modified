@@ -56,6 +56,32 @@ public class TransactionFinanceService : ITransactionFinanceService
     }
   }
 
+  public async Task<Result<List<TransactionDataDto>>> GetTransactionItemsByDateRangeAsync(DateTime startDate, DateTime endDate, int userId, TransactionType transactionType, CancellationToken cancellationToken = default)
+  {
+    var items = await _repository.ListAsync(new ItemsByDateRangeSpec(startDate, endDate, userId, transactionType), cancellationToken);
+
+    if (items.Count == 0) return Result<List<TransactionDataDto>>.NotFound();
+
+    var transactions = new List<TransactionDataDto>();
+
+    foreach (var t in items)
+    {
+      var transactionItem = new TransactionDataDto
+      {
+        Date = t.ExpenseDate.Date,
+        DayOfWeek = t.ExpenseDate.DayOfWeek,
+        Day = t.ExpenseDate.Day,
+        TotalAmount = t.Amount,
+        TransactionDescriptionType = t.TransactionDescriptionType,
+        TransactionType = t.TransactionType
+      };
+
+      transactions.Add(transactionItem);
+    }
+
+    return transactions;
+  }
+
   private static Result<List<TransactionDataDto>> GetListTransactionByMonth(List<Transaction> itemByMonth)
   {
     var list = new List<TransactionDataDto>();

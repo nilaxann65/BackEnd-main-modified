@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using TrackFinance.Web.Endpoints.Incomes;
 
-namespace TrackFinance.Web.Endpoints.Expense;
+namespace TrackFinance.Web.Endpoints.Incomes;
 
 public class IncomesListValidator : AbstractValidator<IncomeListRequest>
 {

@@ -30,7 +30,7 @@ public class GetHistoricalRecordByUser : EndpointBaseAsync
     Ok(new GetHistoricalRecordByUserResponse
     {
       HistoricalRecord = (await _repository.ListAsync(cancellationToken))
-         .Where(expense => expense.UserId == request.UserId)
+         .Where(expense => expense.UserId == request.userId)
          .Where(date => Convert.ToDateTime(date.ExpenseDate.ToString("d")) >= request.StartDate && Convert.ToDateTime(date.ExpenseDate.ToString("d")) <= request.EndDate)
          .Select(expense => new HistoricalRecord(
                                                description: expense.Description,

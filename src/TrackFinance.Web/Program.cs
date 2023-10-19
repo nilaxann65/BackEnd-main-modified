@@ -56,7 +56,7 @@ builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
 
 //builder.Services.AddFluentValidationAutoValidation();
 //builder.Services.AddFluentValidationClientsideAdapters();
-builder.Services.AddValidatorsFromAssemblyContaining<CreateExpenseValidator>();
+//builder.Services.AddValidatorsFromAssemblyContaining<CreateExpenseValidator>();
 //builder.Logging.AddAzureWebAppDiagnostics(); add this if deploying to Azure
 
 var app = builder.Build();
