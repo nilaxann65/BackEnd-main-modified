@@ -5,12 +5,15 @@ using Autofac.Core;
 using Autofac.Extensions.DependencyInjection;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
 using Serilog;
 using TrackFinance.Core;
+using TrackFinance.Core.Interfaces;
 using TrackFinance.Infrastructure;
+using TrackFinance.Infrastructure.cacheMemory;
 using TrackFinance.Infrastructure.Data;
 using TrackFinance.Web;
 using TrackFinance.Web.Endpoints.Expense;
@@ -39,6 +42,14 @@ builder.Services.AddSwaggerGen(c =>
   c.EnableAnnotations();
 });
 
+builder.Services.AddMemoryCache();
+builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
+{
+  containerBuilder.RegisterType<HistoricCacheContextService>()
+      .As<IHistoricCacheContextService>()
+      .WithParameter((pi, ctx) => pi.ParameterType == typeof(IMemoryCache),
+                      (pi, ctx) => ctx.Resolve<IMemoryCache>());
+});
 // add list services for diagnostic purposes - see https://github.com/ardalis/AspNetCoreStartupServices
 builder.Services.Configure<ServiceConfig>(config =>
 {

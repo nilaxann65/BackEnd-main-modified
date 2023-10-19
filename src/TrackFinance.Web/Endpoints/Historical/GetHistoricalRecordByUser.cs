@@ -2,6 +2,7 @@
 using Ardalis.ApiEndpoints;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
+using TrackFinance.Core.Interfaces;
 using TrackFinance.Core.TransactionAgregate;
 using TrackFinance.SharedKernel.Interfaces;
 
@@ -12,10 +13,12 @@ public class GetHistoricalRecordByUser : EndpointBaseAsync
   .WithActionResult<GetHistoricalRecordByUserResponse>
 {
   private readonly IRepository<Transaction> _repository;
+  private readonly IHistoricCacheContextService _cacheRepository;
 
-  public GetHistoricalRecordByUser(IRepository<Transaction> repository)
+  public GetHistoricalRecordByUser(IRepository<Transaction> repository, IHistoricCacheContextService cacheRepository)
   {
     _repository = repository;
+    _cacheRepository = cacheRepository;
   }
 
   [Produces(MediaTypeNames.Application.Json)]
@@ -26,19 +29,30 @@ public class GetHistoricalRecordByUser : EndpointBaseAsync
       OperationId = "HistoricalRecords.GetHistoricalRecordByUser",
       Tags = new[] { "HistoricalRecordsEndpoints" })
   ]
-  public override async Task<ActionResult<GetHistoricalRecordByUserResponse>> HandleAsync([FromRoute] GetHistoricalRecordByUserRequest request, CancellationToken cancellationToken = default) =>
-    Ok(new GetHistoricalRecordByUserResponse
+  public override async Task<ActionResult<GetHistoricalRecordByUserResponse>> HandleAsync([FromRoute] GetHistoricalRecordByUserRequest request, CancellationToken cancellationToken = default)
+  {
+    if (_cacheRepository.existCache(request.userId.ToString()))
+      return Ok(new GetHistoricalRecordByUserResponse
+      {
+        HistoricalRecord = (List<HistoricalRecord>)_cacheRepository.getCache(request.userId.ToString())
+      });
+
+
+    var data = (await _repository.ListAsync(cancellationToken))
+   .Where(expense => expense.UserId == request.userId)
+   .Select(expense => new HistoricalRecord(
+                                         description: expense.Description,
+                                         transactionDescriptionType: expense.TransactionDescriptionType,
+                                         amount: expense.Amount,
+                                         expenseDate: expense.ExpenseDate,
+                                         transactionType: expense.TransactionType))
+   .OrderBy(d => d.expenseDate)
+   .ToList();
+
+    _cacheRepository.setCache(request.userId.ToString(), data);
+    return Ok(new GetHistoricalRecordByUserResponse
     {
-      HistoricalRecord = (await _repository.ListAsync(cancellationToken))
-         .Where(expense => expense.UserId == request.userId)
-         .Where(date => Convert.ToDateTime(date.ExpenseDate.ToString("d")) >= request.StartDate && Convert.ToDateTime(date.ExpenseDate.ToString("d")) <= request.EndDate)
-         .Select(expense => new HistoricalRecord(
-                                               description: expense.Description,
-                                               transactionDescriptionType: expense.TransactionDescriptionType,
-                                               amount: expense.Amount,
-                                               expenseDate: expense.ExpenseDate,
-                                               transactionType: expense.TransactionType))
-         .OrderBy(d => d.expenseDate)
-         .ToList()
+      HistoricalRecord = data
     });
+  }
 }
